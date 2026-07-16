@@ -1,0 +1,17 @@
+# Wrangler / Cloudflare Workers
+.wrangler/
+wrangler.toml
+.dev.vars
+
+# Dependencies (if a build tool is ever added)
+node_modules/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local env files — never commit real API keys
+.env
+.env.local
