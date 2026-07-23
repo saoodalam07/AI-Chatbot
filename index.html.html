@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism — AI Chat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,500&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080b12;
+    --glass:rgba(255,255,255,0.055);
+    --glass-strong:rgba(255,255,255,0.09);
+    --glass-border:rgba(255,255,255,0.10);
+    --glass-border-strong:rgba(255,255,255,0.18);
+    --text:#eef0f5;
+    --text-dim:#9195a6;
+    --text-faint:#5c6072;
+    --cyan:#5ee7ff;
+    --violet:#a78bfa;
+    --mint:#34d399;
+    --claude:#d97757;
+    --gemini:#4c8df6;
+    --openrouter:#9b7ede;
+    --fast:#34d399;
+    --balanced:#a78bfa;
+    --accurate:#f2a65a;
+    --font-display:'Fraunces', serif;
+    --font-body:'Inter', sans-serif;
+    --font-mono:'JetBrains Mono', monospace;
+    --blur:18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;font-family:var(--font-body);color:var(--text);font-size:15px;
+    -webkit-font-smoothing:antialiased;overflow:hidden;
+    background:
+      radial-gradient(ellipse 900px 600px at 15% -10%, rgba(94,231,255,0.10), transparent 60%),
+      radial-gradient(ellipse 800px 700px at 105% 20%, rgba(167,139,250,0.10), transparent 55%),
+      radial-gradient(ellipse 700px 600px at 50% 120%, rgba(52,211,153,0.06), transparent 60%),
+      var(--bg);
+  }
+  ::selection{background:rgba(167,139,250,0.35);}
+
+  .glass{
+    background:var(--glass);
+    backdrop-filter:blur(var(--blur)) saturate(140%);
+    -webkit-backdrop-filter:blur(var(--blur)) saturate(140%);
+    border:1px solid var(--glass-border);
+    box-shadow:0 1px 0 rgba(255,255,255,0.06) inset, 0 20px 50px -20px rgba(0,0,0,0.6);
+  }
+
+  /* ============ AUTH SCREEN ============ */
+  #authScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.55;pointer-events:none;}
+  .orb1{width:420px;height:420px;background:radial-gradient(circle,var(--cyan),transparent 70%);top:-120px;left:-100px;animation:float1 14s ease-in-out infinite;}
+  .orb2{width:380px;height:380px;background:radial-gradient(circle,var(--violet),transparent 70%);bottom:-140px;right:-80px;animation:float2 16s ease-in-out infinite;}
+  @keyframes float1{0%,100%{transform:translate(0,0);}50%{transform:translate(30px,40px);}}
+  @keyframes float2{0%,100%{transform:translate(0,0);}50%{transform:translate(-30px,-30px);}}
+
+  .auth-card{width:400px;max-width:100%;border-radius:22px;padding:34px 32px;position:relative;z-index:2;}
+  .auth-brand{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+  .auth-mark{width:30px;height:30px;}
+  .auth-brand-name{font-family:var(--font-display);font-style:italic;font-weight:500;font-size:22px;}
+  .netsol-credit{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);margin-bottom:18px;letter-spacing:0.02em;}
+
+  .mode-choice{display:flex;gap:8px;margin-bottom:20px;}
+  .mode-card{flex:1;border:1px solid var(--glass-border);border-radius:12px;padding:12px 12px;cursor:pointer;background:rgba(255,255,255,0.02);transition:border-color .15s ease, background .15s ease;}
+  .mode-card.selected{border-color:var(--glass-border-strong);background:var(--glass-strong);}
+  .mode-card-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;}
+  .mode-card-title .mdot{width:6px;height:6px;border-radius:50%;}
+  .mode-card.mode-cloud .mdot{background:var(--cyan);}
+  .mode-card.mode-local .mdot{background:var(--mint);}
+  .mode-card-desc{font-size:11px;color:var(--text-faint);margin-top:4px;line-height:1.4;}
+
+  .auth-tabs{display:flex;background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:12px;padding:4px;margin-bottom:22px;}
+  .auth-tab{flex:1;text-align:center;padding:9px 0;border-radius:9px;font-size:13.5px;color:var(--text-dim);cursor:pointer;transition:all .2s ease;}
+  .auth-tab.active{background:var(--glass-strong);color:var(--text);box-shadow:0 4px 14px -6px rgba(0,0,0,0.5);}
+  .auth-field{margin-bottom:14px;}
+  .auth-field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;}
+  .auth-field input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:10px;padding:11px 13px;color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;transition:border-color .15s ease, background .15s ease;}
+  .auth-field input:focus{border-color:var(--glass-border-strong);background:rgba(255,255,255,0.06);}
+  .auth-submit{width:100%;padding:12px 0;border-radius:11px;border:none;margin-top:8px;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#0a0b10;font-weight:600;font-size:14px;cursor:pointer;box-shadow:0 10px 30px -10px rgba(167,139,250,0.5);transition:transform .15s ease, box-shadow .15s ease;}
+  .auth-submit:hover{transform:translateY(-1px);box-shadow:0 14px 34px -10px rgba(167,139,250,0.6);}
+  .auth-submit:active{transform:translateY(0);}
+  .auth-guest{width:100%;padding:11px 0;border-radius:11px;margin-top:10px;background:transparent;border:1px solid var(--glass-border);color:var(--text-dim);font-size:13.5px;cursor:pointer;}
+  .auth-guest:hover{color:var(--text);border-color:var(--glass-border-strong);}
+  .auth-note{text-align:center;font-size:11px;color:var(--text-faint);margin-top:16px;line-height:1.6;}
+
+  /* ============ APP SHELL ============ */
+  #appShell{position:fixed;inset:0;display:none;z-index:1;}
+  #appShell.visible{display:flex;}
+
+  .sidebar{width:264px;min-width:264px;margin:12px 0 12px 12px;border-radius:20px;display:flex;flex-direction:column;padding:18px 14px;transition:margin-left .25s ease, opacity .25s ease;}
+  .sidebar.collapsed{margin-left:-280px;opacity:0;}
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 6px 6px 6px;}
+  .brand-mark{width:26px;height:26px;flex-shrink:0;}
+  .brand-name{font-family:var(--font-display);font-weight:500;font-style:italic;font-size:19px;}
+  .mode-badge{font-size:9.5px;font-family:var(--font-mono);padding:2px 6px;border-radius:5px;border:1px solid var(--glass-border);color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;}
+  .netsol-tag{font-size:10px;color:var(--text-faint);font-family:var(--font-mono);padding:4px 6px 18px 2px;border-bottom:1px solid var(--glass-border);margin-bottom:16px;}
+
+  .new-chat-btn{display:flex;align-items:center;gap:8px;background:var(--glass-strong);border:1px solid var(--glass-border);color:var(--text);padding:10px 12px;border-radius:12px;font-size:13.5px;cursor:pointer;box-shadow:0 6px 16px -8px rgba(0,0,0,0.5);}
+  .new-chat-btn:hover{border-color:var(--glass-border-strong);}
+  .search-box{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:10px;padding:8px 10px;margin-top:10px;}
+  .search-box input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:12.5px;}
+  .search-box input::placeholder{color:var(--text-faint);}
+  .history-label{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin:18px 8px 8px 8px;}
+  .history-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+  .history-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;border-radius:9px;font-size:13.5px;color:var(--text-dim);cursor:pointer;}
+  .history-item:hover,.history-item.active{background:var(--glass-strong);color:var(--text);}
+  .history-item .htitle{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pin-btn{opacity:0;background:none;border:none;color:var(--text-faint);cursor:pointer;padding:2px;}
+  .history-item:hover .pin-btn{opacity:1;}
+  .pin-btn.pinned{opacity:1;color:var(--cyan);}
+  .sidebar-footer{border-top:1px solid var(--glass-border);padding-top:12px;font-size:12px;color:var(--text-faint);display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .user-chip{display:flex;align-items:center;gap:8px;min-width:0;}
+  .user-avatar{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,var(--cyan),var(--violet));display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0a0b10;flex-shrink:0;}
+  .icon-btn{background:none;border:none;color:var(--text-faint);cursor:pointer;padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .icon-btn:hover{color:var(--text);background:var(--glass-strong);}
+  .engine-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-faint);font-family:var(--font-mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--text-faint);flex-shrink:0;}
+  .status-dot.ready{background:#5fd97f;}
+  .status-dot.loading{background:#f6c04c;animation:pulse 1s ease-in-out infinite;}
+  .status-dot.error{background:#e15a5a;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+  .main{flex:1;display:flex;flex-direction:column;min-width:0;margin:12px 12px 12px 8px;border-radius:20px;overflow:hidden;position:relative;}
+  .topbar{height:58px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;border-bottom:1px solid var(--glass-border);flex-shrink:0;gap:10px;}
+  .topbar-left{display:flex;align-items:center;gap:12px;min-width:0;}
+  .topbar-right{display:flex;align-items:center;gap:6px;}
+
+  .mode-switch{display:flex;background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:11px;padding:3px;gap:2px;flex-shrink:0;}
+  .mode-pill{padding:6px 12px;border-radius:9px;font-size:12px;font-family:var(--font-mono);color:var(--text-dim);cursor:pointer;border:none;background:none;white-space:nowrap;}
+  .mode-pill.active{background:var(--glass-strong);color:var(--text);box-shadow:0 4px 12px -6px rgba(0,0,0,0.5);}
+
+  .provider-switch{display:flex;background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:11px;padding:3px;gap:2px;overflow-x:auto;}
+  .provider-pill{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:9px;font-size:12.5px;font-family:var(--font-mono);color:var(--text-dim);cursor:pointer;border:none;background:none;white-space:nowrap;}
+  .provider-pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .provider-pill[data-p="claude"] .dot{background:var(--claude);}
+  .provider-pill[data-p="gemini"] .dot{background:var(--gemini);}
+  .provider-pill[data-p="openrouter"] .dot{background:var(--openrouter);}
+  .provider-pill[data-p="fast"] .dot{background:var(--fast);}
+  .provider-pill[data-p="balanced"] .dot{background:var(--balanced);}
+  .provider-pill[data-p="accurate"] .dot{background:var(--accurate);}
+  .provider-pill.active{background:var(--glass-strong);color:var(--text);box-shadow:0 4px 12px -6px rgba(0,0,0,0.5);}
+  .provider-pill:hover:not(.active){color:var(--text);}
+
+  .chat-scroll{flex:1;overflow-y:auto;padding:26px 0 12px 0;}
+  .chat-inner{max-width:760px;margin:0 auto;padding:0 26px;display:flex;flex-direction:column;gap:28px;}
+
+  .empty-state{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px;gap:16px;}
+  .empty-mark{width:56px;height:56px;filter:drop-shadow(0 8px 24px rgba(167,139,250,0.35));}
+  .empty-title{font-family:var(--font-display);font-style:italic;font-weight:500;font-size:29px;}
+  .empty-sub{color:var(--text-dim);font-size:14px;max-width:440px;line-height:1.6;}
+  .load-panel{width:100%;max-width:420px;margin-top:6px;}
+  .load-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-faint);font-family:var(--font-mono);margin-bottom:6px;}
+  .load-bar-track{height:6px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;border:1px solid var(--glass-border);}
+  .load-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--violet));transition:width .2s ease;}
+  .load-btn{margin-top:14px;border:1px solid var(--glass-border);background:var(--glass-strong);color:var(--text);padding:11px 20px;border-radius:12px;font-size:13.5px;cursor:pointer;}
+  .load-btn:hover{border-color:var(--glass-border-strong);}
+  .load-btn:disabled{opacity:0.4;cursor:default;}
+  .suggestion-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px;}
+  .suggestion-chip{border:1px solid var(--glass-border);background:var(--glass);backdrop-filter:blur(10px);color:var(--text-dim);padding:10px 15px;border-radius:20px;font-size:13px;cursor:pointer;transition:transform .15s ease;}
+  .suggestion-chip:hover{color:var(--text);border-color:var(--glass-border-strong);transform:translateY(-2px);}
+
+  .msg{display:flex;gap:14px;align-items:flex-start;}
+  .msg.user{flex-direction:row-reverse;}
+  .avatar{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:11px;font-weight:600;}
+  .avatar.assistant{background:var(--glass-strong);border:1px solid var(--glass-border);}
+  .avatar.user{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#0a0b10;}
+  .msg-body{max-width:78%;display:flex;flex-direction:column;gap:6px;}
+  .msg.user .msg-body{align-items:flex-end;}
+  .msg-meta{font-size:11px;color:var(--text-faint);font-family:var(--font-mono);display:flex;gap:8px;align-items:center;}
+  .msg-bubble{line-height:1.65;font-size:14.5px;white-space:pre-wrap;word-wrap:break-word;}
+  .msg.user .msg-bubble{background:var(--glass-strong);border:1px solid var(--glass-border);border-radius:16px 16px 4px 16px;padding:12px 16px;box-shadow:0 8px 20px -10px rgba(0,0,0,0.5);}
+  .msg.assistant .msg-bubble{color:var(--text);padding:2px 0;}
+  .msg-bubble code{font-family:var(--font-mono);background:var(--glass-strong);padding:2px 5px;border-radius:5px;font-size:13px;}
+  .msg-bubble pre{background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);padding:12px 14px;border-radius:12px;overflow-x:auto;margin:8px 0;}
+  .msg-bubble pre code{background:none;padding:0;}
+  .msg-actions{display:flex;gap:4px;opacity:0;transition:opacity .15s ease;}
+  .msg:hover .msg-actions{opacity:1;}
+  .msg-action-btn{background:none;border:none;color:var(--text-faint);cursor:pointer;padding:4px 6px;border-radius:6px;display:flex;align-items:center;gap:4px;font-size:11px;}
+  .msg-action-btn:hover{color:var(--text);background:var(--glass-strong);}
+  .cursor-blink{display:inline-block;width:7px;height:14px;background:var(--text-dim);margin-left:2px;vertical-align:middle;animation:blink 0.9s steps(1) infinite;}
+  @keyframes blink{50%{opacity:0;}}
+  .thinking-row{display:flex;gap:14px;align-items:flex-start;}
+  .prism-load{width:17px;height:17px;}
+
+  .composer-wrap{padding:14px 24px 22px 24px;}
+  .composer{max-width:760px;margin:0 auto;border-radius:18px;padding:11px 11px 11px 18px;display:flex;align-items:flex-end;gap:10px;background:var(--glass-strong);backdrop-filter:blur(var(--blur));border:1px solid var(--glass-border);box-shadow:0 16px 40px -18px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset;}
+  .composer:focus-within{border-color:var(--glass-border-strong);}
+  .composer textarea{flex:1;background:none;border:none;outline:none;resize:none;color:var(--text);font-family:var(--font-body);font-size:14.5px;line-height:1.5;max-height:180px;padding:8px 0;}
+  .composer textarea::placeholder{color:var(--text-faint);}
+  .send-btn{width:36px;height:36px;border-radius:11px;border:none;background:linear-gradient(135deg,var(--cyan),var(--violet));color:#0a0b10;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:0 8px 20px -8px rgba(167,139,250,0.55);}
+  .send-btn:disabled{opacity:0.3;cursor:default;box-shadow:none;}
+  .composer-hint{text-align:center;font-size:11px;color:var(--text-faint);margin-top:10px;}
+
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:60;}
+  .modal-overlay.open{display:flex;}
+  .modal{width:440px;max-width:90vw;border-radius:20px;padding:26px;max-height:85vh;overflow-y:auto;}
+  .modal h3{margin:0 0 4px 0;font-family:var(--font-display);font-style:italic;font-weight:500;font-size:20px;}
+  .modal p.desc{color:var(--text-dim);font-size:12.5px;margin:0 0 18px 0;line-height:1.5;}
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;font-family:var(--font-mono);}
+  .field input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:10px;padding:9px 11px;color:var(--text);font-family:var(--font-mono);font-size:13px;outline:none;}
+  .field input:focus{border-color:var(--glass-border-strong);}
+  .model-option{border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;margin-bottom:10px;cursor:pointer;background:rgba(255,255,255,0.02);}
+  .model-option:hover{border-color:var(--glass-border-strong);}
+  .model-option.selected{border-color:var(--text);background:var(--glass-strong);}
+  .model-option-top{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-mono);font-size:12.5px;}
+  .model-option-desc{font-size:11.5px;color:var(--text-faint);margin-top:4px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .btn{padding:9px 16px;border-radius:9px;border:1px solid var(--glass-border);background:transparent;color:var(--text-dim);font-size:13px;cursor:pointer;font-family:var(--font-body);}
+  .btn.primary{background:linear-gradient(135deg,var(--cyan),var(--violet));color:#0a0b10;border-color:transparent;font-weight:600;}
+  .btn:hover{color:var(--text);}
+
+  .gpu-warning{margin:0 auto;max-width:480px;text-align:center;padding:16px 20px;background:rgba(225,90,90,0.08);border:1px solid rgba(225,90,90,0.3);border-radius:14px;color:#e8a3a3;font-size:13px;line-height:1.6;}
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.12);border-radius:4px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  @media (max-width:720px){
+    .sidebar{position:fixed;z-index:40;height:calc(100% - 24px);}
+    .sidebar.collapsed{margin-left:-280px;}
+    .msg-body{max-width:88%;}
+    .topbar{flex-wrap:wrap;height:auto;padding:10px 14px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="authScreen">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="auth-card glass">
+    <div class="auth-brand">
+      <svg class="auth-mark" viewBox="0 0 32 32" fill="none">
+        <path d="M16 3 L4 24 H28 L16 3Z" stroke="var(--text)" stroke-width="1.4" fill="none" opacity="0.3"/>
+        <path d="M16 3 L10 24" stroke="var(--cyan)" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M16 3 L16 24" stroke="var(--violet)" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M16 3 L22 24" stroke="var(--mint)" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <span class="auth-brand-name">Prism</span>
+    </div>
+    <div class="netsol-credit">Built by Muhammad Saood Alam · NETSOL Technologies AI Research alum</div>
+
+    <div class="mode-choice">
+      <div class="mode-card mode-cloud selected" id="modeCardCloud">
+        <div class="mode-card-title"><span class="mdot"></span>Cloud</div>
+        <div class="mode-card-desc">Claude / Gemini / OpenRouter via your proxy. Needs a Worker URL.</div>
+      </div>
+      <div class="mode-card mode-local" id="modeCardLocal">
+        <div class="mode-card-title"><span class="mdot"></span>Local</div>
+        <div class="mode-card-desc">Runs in-browser via WebGPU. No key, no server, works offline.</div>
+      </div>
+    </div>
+
+    <div class="auth-tabs">
+      <div class="auth-tab active" data-tab="signin">Sign in</div>
+      <div class="auth-tab" data-tab="signup">Create account</div>
+    </div>
+
+    <div id="signinForm">
+      <div class="auth-field"><label>Email</label><input type="email" id="siEmail" placeholder="you@example.com"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="siPass" placeholder="••••••••"></div>
+      <button class="auth-submit" id="signinBtn">Sign in</button>
+    </div>
+    <div id="signupForm" style="display:none;">
+      <div class="auth-field"><label>Name</label><input type="text" id="suName" placeholder="Your name"></div>
+      <div class="auth-field"><label>Email</label><input type="email" id="suEmail" placeholder="you@example.com"></div>
+      <div class="auth-field"><label>Password</label><input type="password" id="suPass" placeholder="At least 8 characters"></div>
+      <button class="auth-submit" id="signupBtn">Create account</button>
+    </div>
+
+    <button class="auth-guest" id="guestBtn">Continue as guest</button>
+    <div class="auth-note">This demo stores your session in this browser tab only. You can switch Cloud/Local anytime from the top bar after signing in.</div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="appShell">
+  <aside class="sidebar glass" id="sidebar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none">
+        <path d="M16 3 L4 24 H28 L16 3Z" stroke="var(--text)" stroke-width="1.4" fill="none" opacity="0.3"/>
+        <path d="M16 3 L10 24" stroke="var(--cyan)" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M16 3 L16 24" stroke="var(--violet)" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M16 3 L22 24" stroke="var(--mint)" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+      <span class="brand-name">Prism</span>
+      <span class="mode-badge" id="sidebarModeBadge">cloud</span>
+    </div>
+    <div class="netsol-tag">NETSOL Technologies AI Research alum project</div>
+
+    <button class="new-chat-btn" id="newChatBtn">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      New conversation
+    </button>
+    <div class="search-box">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="searchInput" placeholder="Search conversations…">
+    </div>
+
+    <div class="history-label">Conversations</div>
+    <div class="history-list" id="historyList"></div>
+
+    <div class="sidebar-footer">
+      <div class="engine-status"><span class="status-dot" id="statusDot"></span><span id="statusText">cloud mode</span></div>
+      <button class="icon-btn" id="settingsBtn" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3.2"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main glass">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="icon-btn" id="collapseBtn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="mode-switch" id="modeSwitch">
+          <button class="mode-pill active" data-mode="cloud">☁ cloud</button>
+          <button class="mode-pill" data-mode="local">💻 local</button>
+        </div>
+        <div class="provider-switch" id="cloudProviderSwitch">
+          <button class="provider-pill active" data-p="claude"><span class="dot"></span>claude</button>
+          <button class="provider-pill" data-p="gemini"><span class="dot"></span>gemini</button>
+          <button class="provider-pill" data-p="openrouter"><span class="dot"></span>openrouter</button>
+        </div>
+        <div class="provider-switch" id="localProviderSwitch" style="display:none;">
+          <button class="provider-pill" data-t="fast"><span class="dot"></span>fast</button>
+          <button class="provider-pill active" data-t="balanced"><span class="dot"></span>balanced</button>
+          <button class="provider-pill" data-t="accurate"><span class="dot"></span>accurate</button>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" id="exportBtn" title="Export conversation as Markdown">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="chat-scroll" id="chatScroll">
+      <div class="chat-inner" id="chatInner">
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-mark" viewBox="0 0 32 32" fill="none">
+            <path d="M16 3 L4 24 H28 L16 3Z" stroke="var(--text)" stroke-width="1.2" fill="none" opacity="0.25"/>
+            <path d="M16 3 L10 24" stroke="var(--cyan)" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M16 3 L16 24" stroke="var(--violet)" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M16 3 L22 24" stroke="var(--mint)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <div class="empty-title" id="emptyTitle">One prompt, three minds.</div>
+          <div class="empty-sub" id="emptySub">Route a single conversation through Claude, Gemini, or OpenRouter — or switch to Local mode above for zero-key, offline chat.</div>
+          <div class="load-panel" id="loadPanel" style="display:none;">
+            <div class="load-row"><span id="loadLabel">Downloading model…</span><span id="loadPct">0%</span></div>
+            <div class="load-bar-track"><div class="load-bar-fill" id="loadBarFill"></div></div>
+          </div>
+          <button class="load-btn" id="loadModelBtn" style="display:none;">Load model</button>
+          <div class="suggestion-row" id="suggestionRow">
+            <div class="suggestion-chip" data-fill="Explain the difference between RAG and fine-tuning">RAG vs fine-tuning</div>
+            <div class="suggestion-chip" data-fill="Write a haiku about distributed systems">Haiku about systems</div>
+            <div class="suggestion-chip" data-fill="Summarize the tradeoffs of hybrid BM25 + dense retrieval">Hybrid retrieval tradeoffs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <div class="composer">
+        <textarea id="composerInput" placeholder="Message Prism…" rows="1"></textarea>
+        <button class="send-btn" id="sendBtn" disabled>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>
+      <div class="composer-hint" id="composerHint">Cloud mode: connect your Worker URL in Settings. Prism can make mistakes.</div>
+    </div>
+  </main>
+</div>
+
+<!-- Cloud settings modal -->
+<div class="modal-overlay" id="cloudSettingsOverlay">
+  <div class="modal glass">
+    <h3>Cloud connection</h3>
+    <p class="desc">Prism sends requests to your own proxy endpoint, which holds provider API keys securely server-side. No keys are ever stored in this browser.</p>
+    <div class="field"><label>Proxy worker URL</label><input type="text" id="workerUrlInput" placeholder="https://your-worker.workers.dev"></div>
+    <div class="modal-actions">
+      <button class="btn" id="cloudSettingsCancel">Cancel</button>
+      <button class="btn primary" id="cloudSettingsSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Local model modal -->
+<div class="modal-overlay" id="localSettingsOverlay">
+  <div class="modal glass">
+    <h3>Local model</h3>
+    <p class="desc">All models run locally via WebGPU — nothing is uploaded anywhere. Larger models are more accurate but need more VRAM and a longer first download.</p>
+    <div id="modelOptions"></div>
+    <div class="modal-actions">
+      <button class="btn" id="localSettingsCancel">Cancel</button>
+      <button class="btn primary" id="localSettingsSave">Use this model</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const MODEL_MAP = { claude:'claude-sonnet-4-6', gemini:'gemini-2.5-flash', openrouter:'openrouter/auto' };
+  const LOCAL_MODELS = {
+    fast:      { id: "Llama-3.2-1B-Instruct-q4f16_1-MLC", label: "Llama 3.2 · 1B", size: "~0.9 GB", desc: "Quickest to load, lightest on VRAM. Good for quick drafting and simple Q&A." },
+    balanced:  { id: "Phi-3.5-mini-instruct-q4f16_1-MLC", label: "Phi 3.5 mini · 3.8B", size: "~2.4 GB", desc: "Best balance of speed and reasoning quality for most chat use." },
+    accurate:  { id: "Llama-3.1-8B-Instruct-q4f16_1-MLC", label: "Llama 3.1 · 8B", size: "~4.6 GB", desc: "Strongest reasoning of the three. Needs a capable GPU and more time to load." },
+  };
+
+  const state = {
+    appMode: 'cloud',           // 'cloud' | 'local'
+    provider: 'claude',         // cloud: claude|gemini|openrouter
+    tier: 'balanced',           // local: fast|balanced|accurate
+    workerUrl: '',
+    engine: null,
+    loadedTier: null,
+    CreateMLCEngine: null,
+    conversations: [],
+    activeId: null,
+    generating: false,
+    userName: 'Guest',
+  };
+
+  const el = id => document.getElementById(id);
+  const chatInner = el('chatInner'), chatScroll = el('chatScroll'), emptyState = el('emptyState');
+  const composerInput = el('composerInput'), sendBtn = el('sendBtn'), composerHint = el('composerHint');
+  const historyList = el('historyList'), searchInput = el('searchInput');
+  const emptyTitle = el('emptyTitle'), emptySub = el('emptySub'), suggestionRow = el('suggestionRow');
+  const loadModelBtn = el('loadModelBtn'), loadPanel = el('loadPanel'), loadBarFill = el('loadBarFill');
+  const loadLabel = el('loadLabel'), loadPct = el('loadPct');
+  const statusDot = el('statusDot'), statusText = el('statusText');
+  const cloudProviderSwitch = el('cloudProviderSwitch'), localProviderSwitch = el('localProviderSwitch');
+
+  /* ---------- Mode selection (auth screen) ---------- */
+  el('modeCardCloud').addEventListener('click', ()=> selectAuthMode('cloud'));
+  el('modeCardLocal').addEventListener('click', ()=> selectAuthMode('local'));
+  function selectAuthMode(mode){
+    state.appMode = mode;
+    el('modeCardCloud').classList.toggle('selected', mode==='cloud');
+    el('modeCardLocal').classList.toggle('selected', mode==='local');
+  }
+
+  /* ---------- Auth ---------- */
+  document.querySelectorAll('.auth-tab').forEach(tab=>{
+    tab.addEventListener('click', ()=>{
+      document.querySelectorAll('.auth-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      const isSignup = tab.dataset.tab === 'signup';
+      el('signinForm').style.display = isSignup ? 'none' : 'block';
+      el('signupForm').style.display = isSignup ? 'block' : 'none';
+    });
+  });
+  function enterApp(name){
+    state.userName = name || 'Guest';
+    el('authScreen').style.display = 'none';
+    el('appShell').classList.add('visible');
+    setAppMode(state.appMode);
+    composerInput.focus();
+  }
+  el('signinBtn').addEventListener('click', ()=>{ const email = el('siEmail').value.trim(); enterApp(email? email.split('@')[0] : 'You'); });
+  el('signupBtn').addEventListener('click', ()=>{ const name = el('suName').value.trim(); enterApp(name || 'You'); });
+  el('guestBtn').addEventListener('click', ()=> enterApp('Guest'));
+
+  /* ---------- Mode switch (top bar, post-login) ---------- */
+  document.querySelectorAll('.mode-pill').forEach(pill=>{
+    pill.addEventListener('click', ()=> setAppMode(pill.dataset.mode));
+  });
+  function setAppMode(mode){
+    state.appMode = mode;
+    document.querySelectorAll('.mode-pill').forEach(p=> p.classList.toggle('active', p.dataset.mode===mode));
+    cloudProviderSwitch.style.display = mode==='cloud' ? 'flex' : 'none';
+    localProviderSwitch.style.display = mode==='local' ? 'flex' : 'none';
+    el('sidebarModeBadge').textContent = mode;
+
+    if(mode === 'cloud'){
+      setStatus('', state.workerUrl ? 'cloud · connected' : 'cloud · no worker set');
+      composerHint.textContent = 'Cloud mode: connect your Worker URL in Settings. Prism can make mistakes.';
+      loadModelBtn.style.display = 'none';
+      emptyTitle.textContent = 'One prompt, three minds.';
+      emptySub.textContent = 'Route a single conversation through Claude, Gemini, or OpenRouter — or switch to Local mode above for zero-key, offline chat.';
+    } else {
+      composerHint.textContent = 'Local mode: runs fully offline after first download. Nothing you type ever leaves this browser tab.';
+      if(state.engine && state.loadedTier === state.tier){
+        setStatus('ready', LOCAL_MODELS[state.tier].label + ' ready');
+        loadModelBtn.style.display = 'none';
+      } else {
+        setStatus('', 'local · not loaded');
+        loadModelBtn.style.display = 'inline-block';
+        loadModelBtn.textContent = 'Load ' + LOCAL_MODELS[state.tier].label;
+        emptyTitle.textContent = 'No keys. No server. Just your GPU.';
+        emptySub.textContent = 'Prism runs the model entirely in this browser tab via WebGPU. First load downloads and caches the weights — after that it works offline.';
+      }
+    }
+    sendBtn.disabled = composerInput.value.trim().length===0 || state.generating;
+    renderMessages();
+  }
+
+  /* ---------- Provider / tier pills ---------- */
+  cloudProviderSwitch.addEventListener('click', (e)=>{
+    const pill = e.target.closest('.provider-pill');
+    if(!pill) return;
+    cloudProviderSwitch.querySelectorAll('.provider-pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    state.provider = pill.dataset.p;
+  });
+  localProviderSwitch.addEventListener('click', (e)=>{
+    const pill = e.target.closest('.provider-pill');
+    if(!pill) return;
+    localProviderSwitch.querySelectorAll('.provider-pill').forEach(p=>p.classList.remove('active'));
+    pill.classList.add('active');
+    state.tier = pill.dataset.t;
+    if(state.tier !== state.loadedTier){
+      loadModelBtn.style.display = 'inline-block';
+      loadModelBtn.textContent = 'Load ' + LOCAL_MODELS[state.tier].label;
+      setStatus('', 'local · not loaded');
+      emptyState.style.display = 'flex';
+      chatInner.querySelectorAll('.msg').forEach(n=>n.remove());
+      emptyTitle.textContent = 'Switch model?';
+      emptySub.textContent = LOCAL_MODELS[state.tier].label+' ('+LOCAL_MODELS[state.tier].size+') needs to load before you can chat with it.';
+      suggestionRow.style.display = 'none';
+    } else {
+      loadModelBtn.style.display = 'none';
+      setStatus('ready', LOCAL_MODELS[state.tier].label + ' ready');
+    }
+  });
+
+  function setStatus(kind, text){ statusDot.className = 'status-dot' + (kind? ' '+kind : ''); statusText.textContent = text; }
+
+  function checkWebGPU(){
+    if(!('gpu' in navigator)){
+      return false;
+    }
+    return true;
+  }
+
+  function isGpuLostError(err){
+    const msg = String(err?.message || err || '');
+    return /external Instance reference|device.*lost|GPUDevice|lost the WebGPU device|context.*lost/i.test(msg);
+  }
+
+  async function loadLocalModel(tier){
+    if(state.generating) return;
+    if(!checkWebGPU()){
+      emptyState.innerHTML = `<div class="gpu-warning">This browser doesn't support WebGPU, so Local mode can't run a model. Try the latest Chrome or Edge on desktop, or switch to Cloud mode above.</div>`;
+      setStatus('error', 'WebGPU unavailable');
+      return;
+    }
+    loadModelBtn.disabled = true;
+    loadPanel.style.display='block';
+    suggestionRow.style.display='none';
+    emptyTitle.textContent='Warming up the model…';
+    emptySub.textContent='First load downloads weights to this browser and caches them — subsequent loads are instant.';
+    setStatus('loading', 'loading '+LOCAL_MODELS[tier].label);
+
+    if(!state.CreateMLCEngine){
+      const cdnCandidates = [
+        "https://esm.run/@mlc-ai/web-llm",
+        "https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm/+esm",
+        "https://unpkg.com/@mlc-ai/web-llm?module",
+      ];
+      let lastErr = null;
+      for(const url of cdnCandidates){
+        try{
+          loadLabel.textContent = 'Fetching model engine…';
+          const mod = await import(/* @vite-ignore */ url);
+          state.CreateMLCEngine = mod.CreateMLCEngine;
+          if(state.CreateMLCEngine) break;
+        }catch(err){ lastErr = err; }
+      }
+      if(!state.CreateMLCEngine){
+        const isFileProtocol = location.protocol === 'file:';
+        setStatus('error', 'engine unavailable');
+        emptyTitle.textContent = 'Could not load the model engine';
+        emptySub.textContent = isFileProtocol
+          ? 'This file is open directly from disk (file://…), and some browsers block loading external libraries from local files. Serve it from a local server or host it (e.g. GitHub Pages) instead of double-clicking the file.'
+          : 'Every CDN source for the WebLLM library was blocked or unreachable — usually a network/firewall or ad-blocker issue. Try a different network or an incognito window, then reload.'
+          + (lastErr ? ' Technical detail: ' + (lastErr.message||lastErr) : '');
+        loadModelBtn.disabled = false;
+        loadPanel.style.display = 'none';
+        return;
+      }
+    }
+
+    const initProgressCallback = (report)=>{
+      const pct = Math.round((report.progress||0)*100);
+      loadBarFill.style.width = pct+'%';
+      loadPct.textContent = pct+'%';
+      loadLabel.textContent = report.text || 'Downloading model…';
+    };
+    try{
+      state.engine = await state.CreateMLCEngine(LOCAL_MODELS[tier].id, { initProgressCallback });
+      state.loadedTier = tier;
+      setStatus('ready', LOCAL_MODELS[tier].label+' ready');
+      loadPanel.style.display='none';
+      emptyTitle.textContent='One prompt, running on your machine.';
+      emptySub.textContent='No keys, no server calls. Everything below runs in this tab.';
+      loadModelBtn.style.display='none';
+      suggestionRow.style.display='flex';
+      autoGrow();
+    }catch(err){
+      setStatus('error','failed to load');
+      emptyTitle.textContent='Model failed to load';
+      emptySub.textContent = err.message || 'Something went wrong initializing WebGPU.';
+      loadModelBtn.disabled=false;
+      loadPanel.style.display='none';
+    }
+  }
+  loadModelBtn.addEventListener('click', ()=> loadLocalModel(state.tier));
+
+  /* ---------- Conversations ---------- */
+  function newConversation(){
+    const conv = { id: Date.now().toString(36), title:'New conversation', messages:[], pinned:false };
+    state.conversations.unshift(conv);
+    state.activeId = conv.id;
+    renderHistory(); renderMessages();
+  }
+  function activeConv(){ return state.conversations.find(c=>c.id===state.activeId); }
+
+  function renderHistory(filter){
+    historyList.innerHTML='';
+    let list = [...state.conversations].sort((a,b)=>(b.pinned - a.pinned));
+    if(filter) list = list.filter(c=>c.title.toLowerCase().includes(filter.toLowerCase()));
+    list.forEach(c=>{
+      const item = document.createElement('div');
+      item.className = 'history-item' + (c.id===state.activeId?' active':'');
+      item.innerHTML = `<span class="htitle">${c.pinned?'📌 ':''}${escapeHtml(c.title)}</span>
+        <button class="pin-btn ${c.pinned?'pinned':''}" title="Pin">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="${c.pinned?'currentColor':'none'}" stroke="currentColor" stroke-width="2"><path d="M12 17v5M9 3h6l1 6-2 2v0l3 3H5l3-3v0l-2-2 1-6z"/></svg>
+        </button>`;
+      item.querySelector('.htitle').onclick = ()=>{ state.activeId=c.id; renderHistory(); renderMessages(); };
+      item.querySelector('.pin-btn').onclick = (e)=>{ e.stopPropagation(); c.pinned=!c.pinned; renderHistory(searchInput.value); };
+      historyList.appendChild(item);
+    });
+  }
+  searchInput.addEventListener('input', ()=> renderHistory(searchInput.value));
+
+  function escapeHtml(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function formatBody(text){
+    let out = escapeHtml(text);
+    out = out.replace(/```([\s\S]*?)```/g,(m,code)=>'<pre><code>'+code.trim()+'</code></pre>');
+    out = out.replace(/`([^`]+)`/g,'<code>$1</code>');
+    return out;
+  }
+
+  function renderMessages(){
+    const conv = activeConv();
+    chatInner.querySelectorAll('.msg').forEach(n=>n.remove());
+    if(!conv || conv.messages.length===0){ emptyState.style.display='flex'; return; }
+    emptyState.style.display='none';
+    conv.messages.forEach((m,i)=> chatInner.appendChild(buildMsgRow(m,i)) );
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+  }
+
+  function buildMsgRow(m, index){
+    const row = document.createElement('div');
+    row.className = 'msg ' + m.role;
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar ' + m.role;
+    const tag = m.mode === 'local' ? m.tier : m.provider;
+    avatar.textContent = m.role==='user' ? state.userName[0].toUpperCase() : (tag? tag[0].toUpperCase() : 'AI');
+    const body = document.createElement('div');
+    body.className = 'msg-body';
+    if(m.role==='assistant'){
+      const meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      let label = '';
+      if(m.mode === 'local') label = m.tier ? LOCAL_MODELS[m.tier].label : '';
+      else label = m.provider ? (m.provider + ' · ' + (MODEL_MAP[m.provider]||'')) : '';
+      meta.innerHTML = `<span>${label}</span>` + (m.latencyMs? `<span>· ${m.latencyMs}ms</span>` : '');
+      body.appendChild(meta);
+    }
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.innerHTML = formatBody(m.content||'') + (m.streaming? '<span class="cursor-blink"></span>' : '');
+    body.appendChild(bubble);
+
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'msg-action-btn'; copyBtn.textContent = 'Copy';
+    copyBtn.onclick = ()=>{ navigator.clipboard.writeText(m.content); copyBtn.textContent='Copied'; setTimeout(()=>copyBtn.textContent='Copy',1200); };
+    actions.appendChild(copyBtn);
+    if(m.role==='assistant' && !m.streaming){
+      const regenBtn = document.createElement('button');
+      regenBtn.className = 'msg-action-btn'; regenBtn.textContent = 'Regenerate';
+      regenBtn.onclick = ()=> regenerate(index);
+      actions.appendChild(regenBtn);
+    }
+    body.appendChild(actions);
+    row.appendChild(avatar); row.appendChild(body);
+    row._bubble = bubble;
+    return row;
+  }
+
+  function showThinking(){
+    const row = document.createElement('div');
+    row.className='thinking-row'; row.id='thinkingRow';
+    const color = state.appMode==='cloud' ? 'var(--'+state.provider+')' : 'var(--'+state.tier+')';
+    row.innerHTML = `<div class="avatar assistant">${(state.appMode==='cloud'?state.provider:state.tier)[0].toUpperCase()}</div>
+      <svg class="prism-load" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="9" stroke="var(--glass-border)" stroke-width="2"/>
+        <path d="M12 3a9 9 0 0 1 9 9" stroke="${color}" stroke-width="2" stroke-linecap="round">
+          <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/>
+        </path></svg>`;
+    chatInner.appendChild(row);
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+  }
+  function hideThinking(){ const r=el('thinkingRow'); if(r) r.remove(); }
+
+  /* ---------- Cloud send path ---------- */
+  async function callProxy(messages, provider){
+    if(!state.workerUrl) throw new Error('No proxy worker URL configured');
+    const res = await fetch(state.workerUrl, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ provider, model: MODEL_MAP[provider], messages: messages.map(m=>({role:m.role, content:m.content})) })
+    });
+    if(!res.ok){ const t = await res.text(); throw new Error('HTTP '+res.status+' '+t.slice(0,120)); }
+    const data = await res.json();
+    return data.reply || data.text || JSON.stringify(data);
+  }
+
+  async function sendCloudMessage(conv, text){
+    if(conv.messages.length===0) conv.title = text.slice(0,40)+(text.length>40?'…':'');
+    conv.messages.push({ role:'user', content:text });
+    composerInput.value=''; autoGrow();
+    renderMessages(); renderHistory(searchInput.value); showThinking();
+    const startedAt = performance.now();
+    try{
+      const reply = await callProxy(conv.messages, state.provider);
+      conv.messages.push({ role:'assistant', content:reply, provider:state.provider, mode:'cloud', latencyMs: Math.round(performance.now()-startedAt) });
+    }catch(err){
+      conv.messages.push({ role:'assistant', content:'Connection error: '+err.message+'\n\nCheck your proxy worker URL in Settings.', provider:state.provider, mode:'cloud' });
+    }
+    hideThinking(); renderMessages(); renderHistory(searchInput.value);
+  }
+
+  /* ---------- Local send path ---------- */
+  async function sendLocalMessage(conv, text){
+    if(!state.engine){
+      conv.messages.push({ role:'user', content:text });
+      conv.messages.push({ role:'assistant', content:'No model is loaded yet, so I can\'t reply. Click "Load model" above the message box — after it finishes downloading, this will start working.', mode:'local', tier:null });
+      composerInput.value=''; autoGrow();
+      renderMessages(); renderHistory(searchInput.value);
+      return;
+    }
+    if(conv.messages.length===0) conv.title = text.slice(0,40)+(text.length>40?'…':'');
+    conv.messages.push({ role:'user', content:text });
+    composerInput.value=''; autoGrow();
+    renderMessages(); renderHistory(searchInput.value);
+
+    const assistantMsg = { role:'assistant', content:'', mode:'local', tier: state.loadedTier, streaming:true };
+    conv.messages.push(assistantMsg);
+    renderMessages();
+    const rows = chatInner.querySelectorAll('.msg.assistant');
+    const bubble = rows[rows.length-1]._bubble;
+    const startedAt = performance.now();
+    const outgoing = conv.messages.filter(m=>m!==assistantMsg).map(m=>({role:m.role, content:m.content}));
+    try{
+      let streamed = false;
+      try{
+        const stream = await state.engine.chat.completions.create({ messages: outgoing, stream: true, temperature: 0.7 });
+        for await (const chunk of stream){
+          const delta = chunk.choices?.[0]?.delta?.content || '';
+          if(delta){
+            assistantMsg.content += delta;
+            bubble.innerHTML = formatBody(assistantMsg.content) + '<span class="cursor-blink"></span>';
+            chatScroll.scrollTop = chatScroll.scrollHeight;
+            streamed = true;
+          }
+        }
+      }catch(streamErr){
+        if(!streamed){
+          const res = await state.engine.chat.completions.create({ messages: outgoing, stream: false, temperature: 0.7 });
+          assistantMsg.content = res.choices?.[0]?.message?.content || '';
+          bubble.innerHTML = formatBody(assistantMsg.content);
+        } else { throw streamErr; }
+      }
+      if(!assistantMsg.content){
+        assistantMsg.content = 'The model returned an empty response. Try rephrasing, or reload the model from the gear icon.';
+      }
+    }catch(err){
+      assistantMsg.content += '\n\n[' + handleLocalError(err) + ']';
+    }
+    assistantMsg.streaming = false;
+    assistantMsg.latencyMs = Math.round(performance.now()-startedAt);
+    renderMessages(); renderHistory(searchInput.value);
+  }
+
+  function handleLocalError(err){
+    if(isGpuLostError(err)){
+      state.engine = null;
+      state.loadedTier = null;
+      setStatus('error', 'GPU session lost');
+      loadModelBtn.style.display = 'inline-block';
+      loadModelBtn.textContent = 'Reload ' + LOCAL_MODELS[state.tier].label;
+      loadModelBtn.disabled = false;
+      return 'The GPU session that was running this model was lost — usually caused by the system sleeping, another app grabbing GPU memory, or the tab losing focus during generation. Click "' + loadModelBtn.textContent + '" above to restart the model. If it keeps happening, try the "fast" tier or close other GPU-heavy tabs.';
+    }
+    return 'Generation error: ' + (err.message || err) + ' — try reloading the model from the gear icon.';
+  }
+
+  /* ---------- Unified send ---------- */
+  async function sendMessage(){
+    const text = composerInput.value.trim();
+    if(!text || state.generating) return;
+    if(!state.activeId) newConversation();
+    const conv = activeConv();
+    state.generating = true;
+    sendBtn.disabled = true;
+    if(state.appMode === 'cloud'){
+      await sendCloudMessage(conv, text);
+    } else {
+      await sendLocalMessage(conv, text);
+    }
+    state.generating = false;
+    sendBtn.disabled = composerInput.value.trim().length===0;
+  }
+
+  async function regenerate(msgIndex){
+    if(state.generating) return;
+    const conv = activeConv();
+    const msg = conv.messages[msgIndex];
+    const history = conv.messages.slice(0, msgIndex);
+    const mode = msg.mode || state.appMode;
+    state.generating = true; sendBtn.disabled = true;
+
+    if(mode === 'cloud'){
+      const assistantMsg = { role:'assistant', content:'', provider: msg.provider || state.provider, mode:'cloud' };
+      conv.messages[msgIndex] = assistantMsg;
+      renderMessages();
+      const startedAt = performance.now();
+      try{
+        const reply = await callProxy(history, assistantMsg.provider);
+        assistantMsg.content = reply;
+        assistantMsg.latencyMs = Math.round(performance.now()-startedAt);
+      }catch(err){
+        assistantMsg.content = 'Connection error: '+err.message;
+      }
+      renderMessages();
+    } else {
+      if(!state.engine){ state.generating=false; sendBtn.disabled=false; return; }
+      const assistantMsg = { role:'assistant', content:'', mode:'local', tier: state.loadedTier, streaming:true };
+      conv.messages[msgIndex] = assistantMsg;
+      renderMessages();
+      const rows = chatInner.querySelectorAll('.msg.assistant');
+      const bubble = rows[rows.length-1]._bubble;
+      const startedAt = performance.now();
+      try{
+        const stream = await state.engine.chat.completions.create({ messages: history.map(m=>({role:m.role, content:m.content})), stream:true, temperature:0.7 });
+        for await (const chunk of stream){
+          const delta = chunk.choices?.[0]?.delta?.content || '';
+          if(delta){ assistantMsg.content += delta; bubble.innerHTML = formatBody(assistantMsg.content) + '<span class="cursor-blink"></span>'; }
+        }
+      }catch(err){
+        assistantMsg.content += '\n\n[' + handleLocalError(err) + ']';
+      }
+      assistantMsg.streaming = false;
+      assistantMsg.latencyMs = Math.round(performance.now()-startedAt);
+      renderMessages();
+    }
+    state.generating = false;
+    sendBtn.disabled = composerInput.value.trim().length===0;
+  }
+
+  function autoGrow(){
+    composerInput.style.height='auto';
+    composerInput.style.height = Math.min(composerInput.scrollHeight,180)+'px';
+    sendBtn.disabled = composerInput.value.trim().length===0 || state.generating;
+  }
+  composerInput.addEventListener('input', autoGrow);
+  composerInput.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); if(!sendBtn.disabled) sendMessage(); }
+  });
+  sendBtn.addEventListener('click', sendMessage);
+  el('newChatBtn').addEventListener('click', newConversation);
+
+  document.querySelectorAll('.suggestion-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=>{ composerInput.value=chip.dataset.fill; autoGrow(); composerInput.focus(); });
+  });
+
+  el('collapseBtn').addEventListener('click', ()=> el('sidebar').classList.toggle('collapsed'));
+
+  /* ---------- Settings modals ---------- */
+  el('settingsBtn').addEventListener('click', ()=>{
+    if(state.appMode === 'cloud'){
+      el('workerUrlInput').value = state.workerUrl;
+      el('cloudSettingsOverlay').classList.add('open');
+    } else {
+      renderModelOptions();
+      el('localSettingsOverlay').classList.add('open');
+    }
+  });
+  el('cloudSettingsCancel').addEventListener('click', ()=> el('cloudSettingsOverlay').classList.remove('open'));
+  el('cloudSettingsSave').addEventListener('click', ()=>{
+    state.workerUrl = el('workerUrlInput').value.trim();
+    el('cloudSettingsOverlay').classList.remove('open');
+    setStatus('', state.workerUrl ? 'cloud · connected' : 'cloud · no worker set');
+  });
+
+  function renderModelOptions(){
+    const wrap = el('modelOptions');
+    wrap.innerHTML='';
+    Object.entries(LOCAL_MODELS).forEach(([key,m])=>{
+      const opt = document.createElement('div');
+      opt.className = 'model-option'+(key===state.tier?' selected':'');
+      opt.innerHTML = `<div class="model-option-top"><span>${m.label}</span><span>${m.size}</span></div><div class="model-option-desc">${m.desc}</div>`;
+      opt.addEventListener('click', ()=>{
+        state.tier = key;
+        renderModelOptions();
+        localProviderSwitch.querySelectorAll('.provider-pill').forEach(p=>p.classList.toggle('active', p.dataset.t===key));
+      });
+      wrap.appendChild(opt);
+    });
+  }
+  el('localSettingsCancel').addEventListener('click', ()=> el('localSettingsOverlay').classList.remove('open'));
+  el('localSettingsSave').addEventListener('click', ()=>{
+    el('localSettingsOverlay').classList.remove('open');
+    if(state.tier !== state.loadedTier){
+      loadModelBtn.style.display='inline-block';
+      loadModelBtn.textContent = 'Load '+LOCAL_MODELS[state.tier].label;
+      setStatus('', 'local · not loaded');
+      emptyState.style.display='flex';
+      chatInner.querySelectorAll('.msg').forEach(n=>n.remove());
+      emptyTitle.textContent='Switch model?';
+      emptySub.textContent = LOCAL_MODELS[state.tier].label+' ('+LOCAL_MODELS[state.tier].size+') needs to load before you can chat with it.';
+      suggestionRow.style.display='none';
+    }
+  });
+
+  el('exportBtn').addEventListener('click', ()=>{
+    const conv = activeConv();
+    if(!conv || conv.messages.length===0) return;
+    let md = '# '+conv.title+'\n\n';
+    conv.messages.forEach(m=>{
+      const label = m.role==='user' ? '**You:**' : (m.mode==='local' ? `**Prism (local · ${m.tier})**:` : `**Prism (${m.provider})**:`);
+      md += label + '\n\n' + m.content + '\n\n---\n\n';
+    });
+    const blob = new Blob([md], {type:'text/markdown'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = conv.title.replace(/[^a-z0-9]+/gi,'-').toLowerCase()+'.md';
+    a.click();
+  });
+
+  renderHistory(); renderMessages();
+})();
+</script>
+</body>
+</html>
