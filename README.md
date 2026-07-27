@@ -201,4 +201,4 @@ MIT — see [`LICENSE`](LICENSE).
 
 ## Credits
 
-Built by **Muhammad Saood Alam**, AI Research alum at NETSOL Technologies. If you'd like the NETSOL mark itself rather than a text credit, drop in the official logo asset — it isn't bundled here out of respect for their trademark.
+Built by **Muhammad Saood Alam**, AI/ML Engineer at NETSOL Technologies.
