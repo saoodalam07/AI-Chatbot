@@ -1,6 +1,6 @@
 <div align="center">
 
-# Prism
+# NETSOL AI Chatbot
 
 **One chat interface. Three ways to run it.**
 
