@@ -1,6 +1,6 @@
 <div align="center">
 
-# NETSOL AI Chatbo
+# NETSOL AI Chatbot
 
 **One chat interface. Three ways to run it.**
 
